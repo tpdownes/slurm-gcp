@@ -21,6 +21,12 @@
 locals {
   scripts_dir = abspath("${path.module}/../../../../scripts")
 
+  extra_labels = {
+    slurm_cluster_name  = var.slurm_cluster_name
+    slurm_instance_role = local.slurm_instance_role
+    ghpc_module         = "slurm-gcp"
+  }
+
   additional_disks = [
     for disk in var.additional_disks : {
       disk_name    = disk.disk_name
@@ -29,13 +35,7 @@ locals {
       boot         = disk.boot
       disk_size_gb = disk.disk_size_gb
       disk_type    = disk.disk_type
-      disk_labels = merge(
-        disk.disk_labels,
-        {
-          slurm_cluster_name  = var.slurm_cluster_name
-          slurm_instance_role = local.slurm_instance_role
-        },
-      )
+      disk_labels  = merge(disk.disk_labels, local.extra_labels)
     }
   ]
 
@@ -120,25 +120,19 @@ module "instance_template" {
   access_config               = var.access_config
 
   # Instance
-  machine_type             = var.machine_type
-  min_cpu_platform         = var.min_cpu_platform
-  name_prefix              = local.name_prefix
-  gpu                      = var.gpu
-  service_account          = local.service_account
-  shielded_instance_config = var.shielded_instance_config
-  threads_per_core         = var.disable_smt ? 1 : null
-  enable_confidential_vm   = var.enable_confidential_vm
-  enable_shielded_vm       = var.enable_shielded_vm
-  preemptible              = var.preemptible
-  spot                     = var.spot
-  on_host_maintenance      = var.on_host_maintenance
-  labels = merge(
-    var.labels,
-    {
-      slurm_cluster_name  = var.slurm_cluster_name
-      slurm_instance_role = local.slurm_instance_role
-    },
-  )
+  machine_type                = var.machine_type
+  min_cpu_platform            = var.min_cpu_platform
+  name_prefix                 = local.name_prefix
+  gpu                         = var.gpu
+  service_account             = local.service_account
+  shielded_instance_config    = var.shielded_instance_config
+  threads_per_core            = var.disable_smt ? 1 : null
+  enable_confidential_vm      = var.enable_confidential_vm
+  enable_shielded_vm          = var.enable_shielded_vm
+  preemptible                 = var.preemptible
+  spot                        = var.spot
+  on_host_maintenance         = var.on_host_maintenance
+  labels                      = merge(var.labels, local.extra_labels)
   instance_termination_action = var.termination_action
 
   # Metadata
@@ -160,15 +154,9 @@ module "instance_template" {
   source_image         = local.source_image
 
   # Disk
-  disk_type    = var.disk_type
-  disk_size_gb = var.disk_size_gb
-  auto_delete  = var.disk_auto_delete
-  disk_labels = merge(
-    {
-      slurm_cluster_name  = var.slurm_cluster_name
-      slurm_instance_role = local.slurm_instance_role
-    },
-    var.disk_labels,
-  )
+  disk_type        = var.disk_type
+  disk_size_gb     = var.disk_size_gb
+  auto_delete      = var.disk_auto_delete
+  disk_labels      = merge(local.extra_labels, var.disk_labels)
   additional_disks = local.additional_disks
 }
